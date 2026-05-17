@@ -182,11 +182,16 @@ async def analyze_scan(
         from services.storage_service import storage_service
         secure_url = storage_service.upload_file(temp_path)
         
-        # 3. Celery Task Başlat
-        from workers.analysis_worker import run_analysis
+        # 3. Celery Task Başlat (Redis Ping Kalkanıyla Zırhlandırılmış)
+        from workers.analysis_worker import run_analysis, REDIS_URL
         session_id = uuid.uuid4().hex
         
         try:
+            # 🛡️ Redis ultra hızlı ping denetimi (0.5s Timeout)
+            import redis
+            r_client = redis.from_url(REDIS_URL, socket_connect_timeout=0.5, socket_timeout=0.5)
+            r_client.ping()
+            
             task = run_analysis.delay(secure_url, session_id)
             return {
                 "status": "processing",
@@ -195,7 +200,7 @@ async def analyze_scan(
             }
         except Exception as celery_err:
             # 🛡️ P2 Graceful Degradation: Celery/Redis koptuysa otonom olarak senkron (sync) işleme moduna geç!
-            print(f"[SEC WARN]: Celery/Redis connection failed ({celery_err}). Activating synchronous fallback engine.")
+            print(f"[SEC WARN]: Celery/Redis connection/ping failed ({celery_err}). Activating synchronous fallback engine instantly.")
             
             class MockTask:
                 def update_state(self, *args, **kwargs):

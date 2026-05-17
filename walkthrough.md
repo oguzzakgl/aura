@@ -54,6 +54,7 @@ Projenin kalbi ve beyni olan katmanlar tamamen zırhlandırılmıştır:
 6. **CORS & Preflight Bağlantı Çözümü:** Next.js (`3005`) ve FastAPI (`8000`) sunucuları arasındaki `OPTIONS` preflight CORS engeli, `main.py` içerisindeki `allow_methods` listesi genişletilerek ve `tenant_session_middleware` asenkron katmanına `OPTIONS` bypass lojiği entegre edilerek siber standartlarda çözüldü!
 7. **Siber Timeout & Senkron Yükleme Kalkanı:** Asenkron worker kilitlenmelerinde yükleme barının %93 dolaylarında asılı kalmasını engellemek amacıyla `AuraClinicalDashboard.tsx` içerisindeki `handleUploadComplete` fonksiyonuna 20 saniyelik siber polling timeout'u ve doğrudan `status: success` ile dönen senkron failover verilerini işleme katmanı entegre edildi!
 8. **Celery Fallback Parametre Hatası Giderildi:** Celery/Redis koptuğunda tetiklenen senkron mock analiz çağrısındaki `TypeError: run_analysis() takes 3 positional arguments but 4 were given` imza hatası, decorator'lü `run_analysis` yerine `.run(...)` saf Python metodu tetiklenerek başarıyla giderildi ve backend'in bu senaryoda çökmesi önlendi!
+9. **Redis Siber Ping Kalkanı Entegre Edildi:** Redis/Celery kapalıyken `delay()` metodunun uvicorn sunucusunu 20 saniye boyunca bloke etmesi (retry loop kilitlenmesi) ve frontend'de yükleme barının %97 dolaylarında asılı kalması engellendi. `main.py` içerisine 0.5 saniyelik ultra hızlı Redis ping kalkanı (`r_client.ping()`) eklenerek, bağlantı kopukluğunda anında (0 ms gecikmeyle) senkron lokal motora failover yapılması sağlandı!
 
 ---
 
