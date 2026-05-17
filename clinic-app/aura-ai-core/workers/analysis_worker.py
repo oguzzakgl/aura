@@ -26,8 +26,7 @@ celery_app.conf.update(
     task_time_limit=330
 )
 
-@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
-def run_analysis(self, scan_url: str, session_id: str):
+def run_analysis_core(self, scan_url: str, session_id: str):
     """
     P1-2: Asenkron Analiz İşçisi (Worker).
     OOM Koruması: Büyük dosyaları arka planda, HTTP isteğini bloklamadan işler.
@@ -152,3 +151,11 @@ def run_analysis(self, scan_url: str, session_id: str):
         if self is not None and hasattr(self, 'retry'):
             raise self.retry(exc=exc)
         raise exc
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=30)
+def run_analysis(self, scan_url: str, session_id: str):
+    """
+    🛡️ Celery Task Sarmalayıcı.
+    Asenkron kuyrukta asıl core fonksiyonu tetikler.
+    """
+    return run_analysis_core(self, scan_url, session_id)

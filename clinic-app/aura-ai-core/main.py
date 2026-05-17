@@ -183,7 +183,7 @@ async def analyze_scan(
         secure_url = storage_service.upload_file(temp_path)
         
         # 3. Celery Task Başlat (Redis Ping Kalkanıyla Zırhlandırılmış)
-        from workers.analysis_worker import run_analysis, REDIS_URL
+        from workers.analysis_worker import run_analysis, run_analysis_core, REDIS_URL
         session_id = uuid.uuid4().hex
         
         try:
@@ -207,7 +207,7 @@ async def analyze_scan(
                     pass
             
             mock_task = MockTask()
-            sync_result = run_analysis.__wrapped__(mock_task, secure_url, session_id)
+            sync_result = run_analysis_core(mock_task, secure_url, session_id)
             
             return {
                 "status": "success",
