@@ -216,24 +216,23 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
   }, [scene, isScanning, isReconstructing, clinicalMaterials, findings]);
 
   return (
-    <group ref={groupRef}>
+    <group 
+      ref={groupRef}
+      onClick={(e: any) => {
+        e.stopPropagation();
+        const mesh = e.object;
+        if (mesh && (mesh as THREE.Mesh).isMesh) {
+          const meshName = (mesh.name || '').toLowerCase();
+          const match = meshName.match(/_(\d+)$/) || meshName.match(/\.stl_(\d+)/);
+          const index = match ? match[1] : '0';
+          console.log(`%c[AURA CLICKED TOOTH MESH]: Name: ${mesh.name} -> Mesh Index: ${index}`, "color: #FF9F0A; font-weight: bold; font-size: 14px;");
+          alert(`Tıkladığınız Dişin Mesh Numarası: ${index}\nMesh Adı: ${mesh.name}\n\nBu numarayı asistanınıza ileterek 3D haritalandırmayı saniyeler içinde kilitleyebilirsiniz!`);
+        }
+      }}
+    >
       <Center>
         <Float speed={isReconstructing ? 3 : 1} rotationIntensity={0.2} floatIntensity={0.3}>
-          <primitive 
-            object={scene} 
-            scale={0.12} 
-            onClick={(e: any) => {
-              e.stopPropagation();
-              const mesh = e.object;
-              if (mesh && mesh.isMesh) {
-                const meshName = mesh.name.toLowerCase();
-                const match = meshName.match(/_(\d+)$/) || meshName.match(/\.stl_(\d+)/);
-                const index = match ? match[1] : '0';
-                console.log(`%c[AURA CLICKED TOOTH MESH]: Name: ${mesh.name} -> Mesh Index: ${index}`, "color: #FF9F0A; font-weight: bold; font-size: 14px;");
-                alert(`Tıkladığınız Dişin Mesh Numarası: ${index}\nMesh Adı: ${mesh.name}\n\nBu numarayı asistanınıza ileterek 3D haritalandırmayı saniyeler içinde kilitleyebilirsiniz!`);
-              }
-            }}
-          />
+          <primitive object={scene} scale={0.12} />
         </Float>
       </Center>
     </group>
