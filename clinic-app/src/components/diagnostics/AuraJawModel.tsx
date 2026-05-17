@@ -119,6 +119,10 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
       color: '#FF9F0A', roughness: 0.6, metalness: 0.1,
       emissive: '#FF9F0A', emissiveIntensity: 0.1,
     }),
+    bone_loss: new THREE.MeshStandardMaterial({
+      color: '#FF9F0A', roughness: 0.6, metalness: 0.1,
+      emissive: '#FF9F0A', emissiveIntensity: 0.1,
+    }),
     scanning: new THREE.MeshStandardMaterial({ 
       color: '#0066CC', wireframe: true, transparent: true, opacity: 0.4,
     }),
@@ -180,7 +184,9 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         } else if (matchedFinding) {
           const pathType = (matchedFinding.pathology || '').toLowerCase();
           const materialKey = pathType as keyof typeof clinicalMaterials;
-          mesh.material = clinicalMaterials[materialKey] || clinicalMaterials.extraction;
+          const assignedMat = clinicalMaterials[materialKey] || clinicalMaterials.extraction;
+          mesh.material = assignedMat;
+          console.log("[AURA 3D COLOR]: Assigned color for", name, "is hex:", assignedMat.color.getHexString(), "pathology:", pathType);
         } else {
           mesh.material = clinicalMaterials.teeth;
         }
