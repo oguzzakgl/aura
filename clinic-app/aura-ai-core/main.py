@@ -202,7 +202,7 @@ async def analyze_scan(
                     pass
             
             mock_task = MockTask()
-            sync_result = run_analysis(mock_task, secure_url, session_id)
+            sync_result = run_analysis.run(mock_task, secure_url, session_id)
             
             return {
                 "status": "success",
