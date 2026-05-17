@@ -7,6 +7,13 @@ import * as THREE from 'three';
 import { useDiagnosticStore } from '@/store/useDiagnosticStore';
 import { useTransientStore } from '@/store/useTransientStore';
 
+const FDI_TO_MESH_MAP: Record<number, number> = {
+  18: 0, 17: 1, 16: 2, 15: 3, 14: 4, 13: 5, 12: 6, 11: 7,
+  21: 8, 22: 9, 23: 10, 24: 11, 25: 12, 26: 13, 27: 14, 28: 15,
+  38: 16, 37: 17, 36: 18, 35: 19, 34: 20, 33: 21, 32: 22, 31: 23,
+  41: 24, 42: 25, 43: 26, 44: 27, 45: 28, 46: 29, 47: 30, 48: 31
+};
+
 export const AuraJawModel = () => {
   const dynamicModelUrl = useDiagnosticStore((state) => state.dynamicModelUrl);
   const isScanning = useDiagnosticStore((state) => state.isScanning);
@@ -153,25 +160,23 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         const mesh = child as THREE.Mesh;
         const name = (mesh.name || '').toLowerCase();
         
-        const isTooth = name.includes('tooth');
-        if (isTooth) {
-          console.log("[AURA 3D MESH]: Found tooth mesh name:", name);
-        }
+        // stl_X formatından mesh ardışık indeksini ayıkla (eğer stl ise 0 varsay)
+        const match = name.match(/\.stl_(\d+)/);
+        const meshIndex = match ? parseInt(match[1]) : 0;
         
         let matchedFinding: any = null;
-        if (isTooth && findings && Array.isArray(findings)) {
-          const match = name.match(/tooth_(\d+)/) || name.match(/_(\d+)/);
-          const meshToothId = match ? match[1] : null;
+        if (findings && Array.isArray(findings)) {
+          matchedFinding = findings.find(f => {
+            const tId = f.tooth_id;
+            if (tId === undefined || tId === null || tId === '') return false;
+            
+            // FDI tooth_id'sinin mesh üzerindeki ardışık index karşılığını doğrula
+            const expectedMeshIndex = FDI_TO_MESH_MAP[Number(tId)];
+            return expectedMeshIndex !== undefined && expectedMeshIndex === meshIndex;
+          });
           
-          if (meshToothId) {
-            matchedFinding = findings.find(f => {
-              const tId = f.tooth_id;
-              if (tId === undefined || tId === null || tId === '') return false;
-              return String(tId) === String(meshToothId);
-            });
-            if (matchedFinding) {
-              console.log("[AURA 3D MATCH]: Mesh:", name, "successfully matched with finding:", matchedFinding);
-            }
+          if (matchedFinding) {
+            console.log("[AURA 3D MATCH]: Mesh:", name, "(Index:", meshIndex, ") successfully mapped with FDI:", matchedFinding.tooth_id);
           }
         }
 
