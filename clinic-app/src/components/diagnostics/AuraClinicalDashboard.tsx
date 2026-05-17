@@ -75,34 +75,8 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
       
       const initData = await response.json();
       
-      if (initData.status === 'processing' && initData.task_id) {
-        const taskId = initData.task_id;
-        
-        // 2. Poll for task completion
-        let isDone = false;
-        let finalData = null;
-        
-        while (!isDone) {
-          await new Promise(r => setTimeout(r, 2000)); // Poll every 2 seconds
-          
-          const statusRes = await fetch(`${apiUrl}/task-status/${taskId}`);
-          if (!statusRes.ok) throw new Error("Task polling failed");
-          
-          const statusData = await statusRes.json();
-          
-          if (statusData.status === 'success') {
-            isDone = true;
-            finalData = statusData;
-          } else if (statusData.status === 'failed') {
-            throw new Error(`Task failed: ${statusData.error}`);
-          } else {
-            // Update UI with step info if available
-            setFindings([{ label: "Aura Devrede", location: statusData.step || "İşleniyor...", confidence: 0, severity: "Orta" }]);
-          }
-        }
-        
-        // 3. Process Final Data
-        const consensusData = finalData.consensus_findings || [];
+      const processResults = async (resultData: any) => {
+        const consensusData = resultData.consensus_findings || [];
         const clinicalFindings = consensusData.map((f: any) => {
           const statusEmoji = f.consensus === 'Onaylı' ? '✅✅' : f.consensus === 'Muhtemel' ? '✅❓' : '❓';
           return {
@@ -115,8 +89,8 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
         });
         
         setFindings(clinicalFindings.length > 0 ? clinicalFindings : [{ label: "Patoloji Saptanmadı", location: "Temiz", confidence: 99 }]);
-        if (finalData.gemini_analysis) {
-            setGeminiReport(finalData.gemini_analysis);
+        if (resultData.gemini_analysis) {
+            setGeminiReport(resultData.gemini_analysis);
         }
 
         // 🏛️ Konsensüs bulgularını 3D Model + 2D Odontogram'a yansıt
@@ -158,6 +132,46 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
               console.error("Automatic treatment planner failed:", planErr);
             }
         }
+      };
+
+      if (initData.status === 'success') {
+        // Doğrudan senkron yanıt geldiyse anında işle!
+        await processResults(initData);
+      } else if (initData.status === 'processing' && initData.task_id) {
+        const taskId = initData.task_id;
+        
+        // 2. Poll for task completion (Maksimum 10 deneme / 20 saniye siber kalkan)
+        let isDone = false;
+        let finalData = null;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (!isDone && attempts < maxAttempts) {
+          attempts++;
+          await new Promise(r => setTimeout(r, 2000)); // Poll every 2 seconds
+          
+          const statusRes = await fetch(`${apiUrl}/task-status/${taskId}`);
+          if (!statusRes.ok) throw new Error("Task polling failed");
+          
+          const statusData = await statusRes.json();
+          
+          if (statusData.status === 'success') {
+            isDone = true;
+            finalData = statusData;
+          } else if (statusData.status === 'failed') {
+            throw new Error(`Task failed: ${statusData.error}`);
+          } else {
+            // Update UI with step info if available
+            setFindings([{ label: "Aura Devrede", location: statusData.step || "İşleniyor...", confidence: 0, severity: "Orta" }]);
+          }
+        }
+        
+        if (!isDone) {
+          throw new Error("Analiz sunucusu kuyruğu zaman aşımına uğradı. Güvenli moda geçiliyor.");
+        }
+        
+        // 3. Process Final Data
+        await processResults(finalData);
       }
     } catch (error) {
       console.error("Aura Brain Connection Failed:", error);
