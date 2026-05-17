@@ -1,0 +1,14 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+pydantic==2.6.1
+python-multipart==0.0.9
+numpy==1.26.4
+scipy==1.12.0
+pyvista==0.43.3
+meshlib==2.2.0
+# nnunetv2 
+# fenics
+scikit-image==0.22.0
+nibabel==5.2.1 
+cryptography==42.0.5
+python-dotenv==1.0.1
