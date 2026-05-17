@@ -92,20 +92,18 @@ FDI diş numaralama sistemi kullan (11-18, 21-28, 31-38, 41-48). Sadece patoloji
 
 Her JSON objesi şu alanları içermelidir:
 - "tooth_id": Diş numarası (Integer)
-- "pathology": "filling", "endo", "extraction", "implant", "missing", "caries", "lesion", "fracture", "resorption", "impacted", "calculus", "gingivitis", "recession", "plaque" değerlerinden BİRİ olmalı.
+- "pathology": "filling", "endo", "extraction", "implant", "missing", "caries", "cyst", "bone_loss", "lesion", "fracture", "resorption", "impacted", "calculus", "gingivitis", "recession", "plaque" değerlerinden BİRİ olmalı.
 - "severity": "Düşük", "Orta", "Yüksek", "Kritik"
 - "confidence": AI olarak bu tespitten ne kadar emin olduğunun skoru (0.0 ile 1.0 arası Float).
-- "description": (İsteğe bağlı) Ek klinik detay (boyut, açı, konum vb.)
+- "description": (İsteğe bağlı) Ek klinik detay (kök ucundaki kist boyutu mm, alveolar kemik kaybı derinliği mm vb.)
 
 Örnek JSON Çıktısı:
 ```json
 [
   {"tooth_id": 14, "pathology": "endo", "severity": "Yüksek", "confidence": 0.95},
-  {"tooth_id": 14, "pathology": "lesion", "severity": "Kritik", "confidence": 0.85, "description": "Kök ucunda 4mm radyolüsensi"},
-  {"tooth_id": 16, "pathology": "filling", "severity": "Orta", "confidence": 0.90},
-  {"tooth_id": 38, "pathology": "impacted", "severity": "Yüksek", "confidence": 0.99, "description": "Mezioanguler, mandibular kanala temas"},
-  {"tooth_id": 23, "pathology": "recession", "severity": "Orta", "confidence": 0.92, "description": "2mm marjinal diş eti çekilmesi"},
-  {"tooth_id": 48, "pathology": "missing", "severity": "Düşük", "confidence": 1.0}
+  {"tooth_id": 14, "pathology": "cyst", "severity": "Kritik", "confidence": 0.91, "description": "Kök ucunda 6mm radyolüsent periapikal kistik lezyon şüphesi"},
+  {"tooth_id": 36, "pathology": "bone_loss", "severity": "Yüksek", "confidence": 0.88, "description": "Mine-çimento sınırından itibaren 4mm kemik kaybı derinliği"},
+  {"tooth_id": 16, "pathology": "filling", "severity": "Orta", "confidence": 0.90}
 ]
 ```
 """

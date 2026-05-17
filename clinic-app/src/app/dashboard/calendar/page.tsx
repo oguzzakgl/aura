@@ -7,7 +7,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { 
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   Plus, MoreHorizontal, Clock, User, Phone, Mail, X, 
-  ExternalLink, Activity, CheckCircle2, Search, Stethoscope
+  ExternalLink, Activity, CheckCircle2, Search, Stethoscope,
+  Loader2
 } from 'lucide-react';
 
 const hours = Array.from({ length: 11 }, (_, i) => i + 8); // 8am to 6pm

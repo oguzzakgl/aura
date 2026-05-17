@@ -42,7 +42,18 @@ Projenin görsel kimliği [globals.css](file:///c:/Users/oguz/Desktop/dentist/cl
 
 ---
 
+## 🛡️ Faz 3.5: Askeri Düzeyde Zırhlandırma ve Yapay Zeka Teşhis Genişletmesi
+Projenin kalbi ve beyni olan katmanlar tamamen zırhlandırılmıştır:
+1. **Tıbbi Kalibrasyon & Metal Gürültü Filtresi:** DICOM görüntüleri Numpy ile float32 olarak işlenip `+3000 HU` metal artifacts saçaklanmalarından arındırılıyor.
+2. **Multi-Model Otonom Failover Consensus:** API çökmelerinde `OpenAI` -> `Local Llama` -> `Local YOLO` otonom geçiş hattı (Circuit Breaker) kuruldu. Redis/Celery koptuğunda sunucunun çökmesini önleyen **Graceful Degradation** zırhı eklendi.
+3. **Kist & Alveolar Kemik Kaybı (Cyst & Alveolar Bone Loss) Teşhisi:** 
+    - Yapay zeka analiz motoruna kist (`cyst`) ve mine-çimento sınırından kemik kaybı derinliği tespiti (`bone_loss`) yeteneği eklendi.
+    - Ön yüzdeki 2D Odontogram şeması (`AuraOdontogram.tsx`) bu iki yeni patolojiyi fütüristik mor (🔮 - Kist) ve turuncu (📉 - Kemik Kaybı) renkleriyle görselleştirecek ve interaktif işlem menüsü sunacak şekilde güncellendi.
+4. **Hata Temizliği:** `Calendar` sayfasındaki eksik `<Loader2 />` import hatası ve `PrescriptionWizard.tsx` içerisindeki ikon derleme sorunları tamamen giderildi. Proje sıfır hata ile derleniyor!
+
+---
+
 ## 🏁 Sonraki Adımlar
-1. `.env.local` dosyasına gerçek Supabase bilgilerinin girilmesi.
-2. PostgreSQL seviyesinde `EXCLUSION CONSTRAINT` kurallarının işletilmesi.
-3. Gemini 1.5 Pro Vision entegrasyonu için backend logic'inin yazılması.
+1. `.env.local` dosyasına Supabase ve Gemini API anahtarlarının girilmesi.
+2. Sistemik risk anamnez detayları için lokal veri tabanı test senaryolarının genişletilmesi.
+3. CBCT kesitleri üzerinden volumetrik 3D rekonstrüksiyon model testlerinin yapılması.

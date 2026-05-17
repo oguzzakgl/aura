@@ -22,9 +22,12 @@ def normalize_pathology(raw: str) -> str:
         "missing": "missing", "eksik": "missing",
         "extraction": "extraction", "çekim": "extraction",
         "impacted": "impacted", "gömülü": "impacted",
-        "lesion": "lesion", "lezyon": "lesion", "kist": "lesion",
+        "lesion": "lesion", "lezyon": "lesion",
+        "kist": "cyst", "cyst": "cyst", "cystic": "cyst", "kistik": "cyst",
         "fracture": "fracture", "kırık": "fracture",
         "resorption": "resorption", "rezorpsiyon": "resorption",
+        "bone loss": "bone_loss", "bone_loss": "bone_loss", "kemik kaybı": "bone_loss",
+        "alveolar bone loss": "bone_loss", "periodontitis": "bone_loss"
     }
     return alias_map.get(lower, lower)
 

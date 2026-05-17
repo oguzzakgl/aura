@@ -11,8 +11,10 @@ YOLO_CLASS_MAP: Dict[str, str] = {
     "crown": "filling",
     "filling": "filling",
     "implant": "implant",
-    "periapical lesion": "lesion",
-    "periapical_lesion": "lesion",
+    "periapical lesion": "cyst",
+    "periapical_lesion": "cyst",
+    "cyst": "cyst",
+    "lesion": "cyst",
     "root canal treatment": "endo",
     "root_canal_treatment": "endo",
     "root canal": "endo",
@@ -20,6 +22,9 @@ YOLO_CLASS_MAP: Dict[str, str] = {
     "missing": "missing",
     "impacted": "extraction",
     "impacted tooth": "extraction",
+    "bone loss": "bone_loss",
+    "bone_loss": "bone_loss",
+    "periodontitis": "bone_loss",
 }
 
 CONFIDENCE_THRESHOLD = 0.25

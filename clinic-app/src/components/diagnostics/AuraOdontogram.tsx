@@ -20,6 +20,8 @@ const PROCEDURES = [
   { id: 'lesion', label: 'Lezyon/Kist', color: '#FFD60A', icon: '⚠️' },
   { id: 'fracture', label: 'Kırık', color: '#FF6B9D', icon: '💥' },
   { id: 'resorption', label: 'Rezorpsiyon', color: '#30D5C8', icon: '🔄' },
+  { id: 'cyst', label: 'Kistik Lezyon', color: '#AF52DE', icon: '🔮' },
+  { id: 'bone_loss', label: 'Kemik Kaybı', color: '#FF9500', icon: '📉' },
 ];
 
 export const AuraOdontogram = () => {
@@ -141,6 +143,8 @@ const ToothItem = ({ id, status, active, onClick }: { id: number, status: string
     lesion: 'bg-[#FFD60A] border-[#FFD60A] text-black',
     fracture: 'bg-[#FF6B9D] border-[#FF6B9D] text-white',
     resorption: 'bg-[#30D5C8] border-[#30D5C8] text-white',
+    cyst: 'bg-[#AF52DE] border-[#AF52DE] text-white',
+    bone_loss: 'bg-[#FF9500] border-[#FF9500] text-white',
   };
 
   const currentStyle = colorMap[status] || colorMap.healthy;
