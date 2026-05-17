@@ -48,7 +48,14 @@ from middleware.auth_guard import JWT_SECRET, JWT_ALGORITHM
 @app.middleware("http")
 async def tenant_session_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
-        return await call_next(request)
+        from fastapi.responses import Response
+        origin = request.headers.get("Origin", "http://127.0.0.1:3005")
+        response = Response(status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, Tenant-Id"
+        return response
         
     auth_header = request.headers.get("Authorization")
     tenant_id = None
