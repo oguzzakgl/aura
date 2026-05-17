@@ -75,10 +75,15 @@ def run_analysis_core(self, scan_url: str, session_id: str):
         # 3. Run Gemini (We need to run the async function in sync context since Celery is sync here)
         self.update_state(state='PROGRESS', meta={'step': 'Running Expert Gemini analysis...'})
         
-        # Helper to run async in celery
+        # Helper to run async in celery (and nest-asyncio for FastAPI fallback)
         def run_async(coro):
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            import nest_asyncio
+            nest_asyncio.apply()
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
             return loop.run_until_complete(coro)
             
         gemini_text = run_async(gemini_service.analyze_radiograph(local_file))
