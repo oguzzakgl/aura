@@ -12,7 +12,7 @@ export const AuraJawModel = () => {
   const isScanning = useDiagnosticStore((state) => state.isScanning);
   const isReconstructing = useDiagnosticStore((state) => state.isReconstructing);
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001';
   const modelPath = dynamicModelUrl 
     ? `${apiUrl}${dynamicModelUrl}` 
     : '/test-images/human_teeth_elite.glb';

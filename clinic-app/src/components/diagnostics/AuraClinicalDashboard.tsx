@@ -60,7 +60,8 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
     formData.append('file', files[0]);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001';
+      console.log("[AURA DIAGNOSTICS LOG] Resolved API URL is:", apiUrl);
       
       // 1. Initiate async analysis task
       const response = await fetch(`${apiUrl}/analyze-scan`, {
@@ -191,7 +192,7 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
 
   const handleDownloadReport = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001';
       const response = await fetch(`${apiUrl}/generate-report`, {
         method: 'POST',
         headers: {
