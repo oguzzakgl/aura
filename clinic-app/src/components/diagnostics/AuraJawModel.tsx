@@ -115,6 +115,10 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
     resorption: new THREE.MeshStandardMaterial({
       color: '#30D5C8', roughness: 0.5, metalness: 0.1,
     }),
+    periodontitis: new THREE.MeshStandardMaterial({
+      color: '#FF9F0A', roughness: 0.6, metalness: 0.1,
+      emissive: '#FF9F0A', emissiveIntensity: 0.1,
+    }),
     scanning: new THREE.MeshStandardMaterial({ 
       color: '#0066CC', wireframe: true, transparent: true, opacity: 0.4,
     }),
@@ -149,9 +153,11 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         
         let matchedFinding: any = null;
         if (isTooth && findings && Array.isArray(findings)) {
-          matchedFinding = findings.find(f => 
-            name.includes(`_${f.tooth_id}`) || name === `tooth_${f.tooth_id}`
-          );
+          matchedFinding = findings.find(f => {
+            const tId = f.tooth_id;
+            if (tId === undefined || tId === null || tId === '') return false;
+            return name.includes(`_${tId}`) || name === `tooth_${tId}`;
+          });
         }
 
         mesh.visible = true; 
