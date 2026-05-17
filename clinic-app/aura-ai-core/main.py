@@ -36,7 +36,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
@@ -47,6 +47,9 @@ from middleware.auth_guard import JWT_SECRET, JWT_ALGORITHM
 
 @app.middleware("http")
 async def tenant_session_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+        
     auth_header = request.headers.get("Authorization")
     tenant_id = None
     

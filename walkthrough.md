@@ -51,6 +51,7 @@ Projenin kalbi ve beyni olan katmanlar tamamen zırhlandırılmıştır:
     - Ön yüzdeki 2D Odontogram şeması (`AuraOdontogram.tsx`) bu iki yeni patolojiyi fütüristik mor (🔮 - Kist) ve turuncu (📉 - Kemik Kaybı) renkleriyle görselleştirecek ve interaktif işlem menüsü sunacak şekilde güncellendi.
 4. **Hata Temizliği:** `Calendar` sayfasındaki eksik `<Loader2 />` import hatası ve `PrescriptionWizard.tsx` içerisindeki ikon derleme sorunları tamamen giderildi. Proje sıfır hata ile derleniyor!
 5. **Siber Dayanıklılık & Failover Stres Testi:** Gemini bulut API çökmeleri simüle edilerek sistemin sıfır gecikmeyle lokal YOLOv8 tanı motoruna geçtiği ve ön yüzde fütüristik neon kırmızı **"🚨 ACİL DURUM SİBER YEDEKLİLİK AKTİF"** HUD kalkan rozetinin pürüzsüzce tetiklendiği E2E ve integration test paketiyle tescillendi!
+6. **CORS & Preflight Bağlantı Çözümü:** Next.js (`3005`) ve FastAPI (`8000`) sunucuları arasındaki `OPTIONS` preflight CORS engeli, `main.py` içerisindeki `allow_methods` listesi genişletilerek ve `tenant_session_middleware` asenkron katmanına `OPTIONS` bypass lojiği entegre edilerek siber standartlarda çözüldü!
 
 ---
 
