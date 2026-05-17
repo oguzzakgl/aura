@@ -150,6 +150,9 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         const name = (mesh.name || '').toLowerCase();
         
         const isTooth = name.includes('tooth');
+        if (isTooth) {
+          console.log("[AURA 3D MESH]: Found tooth mesh name:", name);
+        }
         
         let matchedFinding: any = null;
         if (isTooth && findings && Array.isArray(findings)) {
@@ -162,6 +165,9 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
               if (tId === undefined || tId === null || tId === '') return false;
               return String(tId) === String(meshToothId);
             });
+            if (matchedFinding) {
+              console.log("[AURA 3D MATCH]: Mesh:", name, "successfully matched with finding:", matchedFinding);
+            }
           }
         }
 
