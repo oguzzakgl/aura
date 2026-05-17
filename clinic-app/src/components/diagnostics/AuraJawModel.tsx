@@ -147,7 +147,7 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
     }
   });
 
-  useMemo(() => {
+  React.useEffect(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
