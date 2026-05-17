@@ -80,6 +80,27 @@ export default function DiagnosticsPage() {
       {/* 🏛️ LEFT PANEL: ANALYTICAL VIEWPORT */}
       <div className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto no-scrollbar">
         
+        {findings.some((f: any) => f.is_fallback) && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 bg-rose-500/10 border border-rose-500/30 rounded-3xl flex items-center justify-between shadow-[0_0_25px_rgba(239,68,68,0.15)] backdrop-blur-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-rose-500/20 flex items-center justify-center text-rose-500 animate-pulse border border-rose-500/30">
+                <Zap size={18} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-rose-500">🚨 ACİL DURUM SİBER YEDEKLİLİK AKTİF</p>
+                <p className="text-[9px] text-(--muted) font-medium">Bulut motorları çevrimdışı. Otonom lokal YOLOv8 ve Llama tanı katmanları devrede.</p>
+              </div>
+            </div>
+            <span className="text-[9px] font-black px-3 py-1.5 bg-rose-500/25 text-rose-500 rounded-full border border-rose-500/30 animate-pulse">
+              SAFE-MODE
+            </span>
+          </motion.div>
+        )}
+
         {/* HEADER */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

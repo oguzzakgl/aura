@@ -150,6 +150,10 @@ class GeminiAuraService:
 
     async def _execute_gemini_call(self, image_path: str) -> str:
         """Internal method to execute the actual Gemini API call."""
+        if os.getenv("STRESS_TEST_MODE", "true").lower() == "true":
+            print("[AURA STRESS TEST]: Mocking 429 Resource Exhausted for Gemini API.")
+            raise Exception("429 RESOURCE_EXHAUSTED: Mocked rate limit for cyber resilience testing.")
+            
         image_part = self._read_image(image_path)
 
         for model_name in MODEL_FALLBACK_CHAIN:
