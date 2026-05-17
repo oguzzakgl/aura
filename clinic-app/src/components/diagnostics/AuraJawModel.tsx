@@ -160,8 +160,8 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         const mesh = child as THREE.Mesh;
         const name = (mesh.name || '').toLowerCase();
         
-        // stl_X formatından mesh ardışık indeksini ayıkla (eğer stl ise 0 varsay)
-        const match = name.match(/\.stl_(\d+)/);
+        // 🛡️ Kırılmaz Regex Kalkanı: .stl_X veya _X en son sayısal grubunu yakala
+        const match = name.match(/_(\d+)$/) || name.match(/\.stl_(\d+)/);
         const meshIndex = match ? parseInt(match[1]) : 0;
         
         let matchedFinding: any = null;
@@ -190,10 +190,20 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
           const pathType = (matchedFinding.pathology || '').toLowerCase();
           const materialKey = pathType as keyof typeof clinicalMaterials;
           const assignedMat = clinicalMaterials[materialKey] || clinicalMaterials.extraction;
-          mesh.material = assignedMat;
-          console.log("[AURA 3D COLOR]: Assigned color for", name, "is hex:", assignedMat.color.getHexString(), "pathology:", pathType);
+          
+          // 🛡️ Materyal Klonlama Kalkanı: Her mesh için bağımsız materyal instance'ı oluştur
+          const clonedMat = assignedMat.clone();
+          if (clonedMat instanceof THREE.MeshStandardMaterial) {
+            clonedMat.transparent = false;
+            clonedMat.opacity = 1.0;
+          }
+          mesh.material = clonedMat;
+          
+          console.log("[AURA 3D COLOR]: Assigned color for", name, "pathology:", pathType);
         } else {
-          mesh.material = clinicalMaterials.teeth;
+          // Sağlıklı dişlere şık ve hafif şeffaf (Glassmorphism) varsayılan atayarak parlamayı artır
+          const healthyMat = clinicalMaterials.teeth.clone();
+          mesh.material = healthyMat;
         }
       }
     });
