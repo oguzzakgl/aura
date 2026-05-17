@@ -22,36 +22,33 @@ for name, geom in scene.geometry.items():
         'z': centroid[2]
     })
 
-# Filter out index 0 (which is the main mesh or gum)
+# Filter out index 0
 teeth = [m for m in meshes if m['index'] > 0]
 
-# Sort all teeth by Y coordinate descending
+# Sort all teeth by Y coordinate descending (isolates Upper and Lower jaws)
 teeth_sorted_by_y = sorted(teeth, key=lambda t: t['y'], reverse=True)
-
-# The first 16 with highest Y are Upper teeth!
 upper_teeth = teeth_sorted_by_y[:16]
-# The remaining 16 with lowest Y are Lower teeth!
 lower_teeth = teeth_sorted_by_y[16:]
 
-print(f"Upper teeth isolated: {len(upper_teeth)}")
-print(f"Lower teeth isolated: {len(lower_teeth)}")
+# 🔬 X-axis Inversion Shield:
+# Based on clinical logs, FDI 16 corresponds to mesh Index 7 (which has high X: 34.75)
+# Therefore, higher X values correspond to the patient's RIGHT side (FDI 1x and 4x)!
+# Lower X values correspond to the patient's LEFT side (FDI 2x and 3x)!
 
-# Upper teeth: sort by X ascending (Sağ to Sol)
-upper_sorted_by_x = sorted(upper_teeth, key=lambda t: t['x'])
+# Upper teeth: sort by X descending (from Patient Right/high X to Patient Left/low X)
+upper_sorted_by_x = sorted(upper_teeth, key=lambda t: t['x'], reverse=True)
 upper_fdi = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28]
 upper_mapping = {}
 for i, t in enumerate(upper_sorted_by_x):
     upper_mapping[upper_fdi[i]] = t['index']
 
-# Lower teeth: sort by X ascending (Sağ to Sol)
-# In standard dental charts:
-# Lower left (38 to 31) are on patient's left (our right, high X)
-# Lower right (41 to 48) are on patient's right (our left, low X)
-# Let's map Lower teeth sorted by X ascending:
-# Patient Right (FDI 48 to 41) -> Patient Left (FDI 31 to 38)
-# So sorted list from lowest X to highest X represents:
+# Lower teeth: sort by X descending (from Patient Right/high X to Patient Left/low X)
+# Standard dental FDI chart for lower teeth:
+# Lower Right (48 to 41): patient's right side (high X) -> goes from 48 (far right) to 41 (center right)
+# Lower Left (31 to 38): patient's left side (low X) -> goes from 31 (center left) to 38 (far left)
+# So sorted list from highest X to lowest X represents:
 # FDI 48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38 in exact order!
-lower_sorted_by_x = sorted(lower_teeth, key=lambda t: t['x'])
+lower_sorted_by_x = sorted(lower_teeth, key=lambda t: t['x'], reverse=True)
 lower_fdi = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38]
 lower_mapping = {}
 for i, t in enumerate(lower_sorted_by_x):
@@ -60,7 +57,7 @@ for i, t in enumerate(lower_sorted_by_x):
 # Combine mapping
 full_mapping = {**upper_mapping, **lower_mapping}
 
-print("\n--- GENERATED FLAWLESS FDI TO MESH MAP ---")
+print("\n--- GENERATED INVERSION-CORRECTED FDI TO MESH MAP ---")
 print("const FDI_TO_MESH_MAP: Record<number, number> = {")
 for fdi in sorted(full_mapping.keys()):
     print(f"  {fdi}: {full_mapping[fdi]},")
