@@ -19,6 +19,7 @@ import DOMPurify from "dompurify";
 
 export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode }) => {
   const applyFindings = useDiagnosticStore((state) => state.applyFindings);
+  const resetStore = useDiagnosticStore((state) => state.resetStore);
   const [showUploader, setShowUploader] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -38,6 +39,9 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
 
   const handleUploadComplete = async (files: File[]) => {
     if (files.length === 0) return;
+    
+    // 🛡️ ZIRH: Eski tarama/manuel bulgu kalıntılarını tamamen temizle
+    resetStore();
     
     setUploadedFile(files[0]);
     setShowUploader(false);

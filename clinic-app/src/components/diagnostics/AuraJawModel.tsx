@@ -8,10 +8,10 @@ import { useDiagnosticStore } from '@/store/useDiagnosticStore';
 import { useTransientStore } from '@/store/useTransientStore';
 
 const FDI_TO_MESH_MAP: Record<number, number> = {
-  18: 1, 17: 2, 16: 3, 15: 4, 14: 5, 13: 6, 12: 7, 11: 8,
-  21: 9, 22: 10, 23: 11, 24: 12, 25: 13, 26: 14, 27: 15, 28: 16,
-  38: 17, 37: 18, 36: 19, 35: 20, 34: 21, 33: 22, 32: 23, 31: 24,
-  41: 25, 42: 26, 43: 27, 44: 28, 45: 29, 46: 30, 47: 31, 48: 32
+  11: 3,  12: 12, 13: 25, 14: 14, 15: 26, 16: 13, 17: 4,  18: 19,
+  21: 2,  22: 20, 23: 29, 24: 8,  25: 30, 26: 7,  27: 21, 28: 24,
+  31: 1,  32: 9,  33: 31, 34: 23, 35: 11, 36: 22, 37: 10, 38: 32,
+  41: 15, 42: 5,  43: 27, 44: 18, 45: 6,  46: 17, 47: 16, 48: 28
 };
 
 export const AuraJawModel = () => {
@@ -163,6 +163,11 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         // 🛡️ Kırılmaz Regex Kalkanı: .stl_X veya _X en son sayısal grubunu yakala
         const match = name.match(/_(\d+)$/) || name.match(/\.stl_(\d+)/);
         const meshIndex = match ? parseInt(match[1]) : 0;
+        
+        // 🔬 ANATOMİK KOORDİNAT TEŞHİSİ: Her mesh'in sahnedeki gerçek X, Y, Z konumunu logla
+        const worldPos = new THREE.Vector3();
+        mesh.getWorldPosition(worldPos);
+        console.log(`[AURA 3D GEOMETRY]: Mesh: ${mesh.name} (Index: ${meshIndex}) -> Position X: ${worldPos.x.toFixed(4)}, Y: ${worldPos.y.toFixed(4)}, Z: ${worldPos.z.toFixed(4)}`);
         
         let matchedFinding: any = null;
         if (findings && Array.isArray(findings)) {
