@@ -37,6 +37,12 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
     { label: "Analiz Bekleniyor", location: "Veri Girişi Gerekli", confidence: 0 }
   ]);
 
+  React.useEffect(() => {
+    // 🛡️ ZIRH: Sayfa ilk açıldığında localStorage önbelleğindeki eski uyumsuz bulguları tamamen temizle!
+    resetStore();
+    console.log("[AURA SHIELD]: Local storage diagnostic cache successfully purged on mount.");
+  }, [resetStore]);
+
   const handleUploadComplete = async (files: File[]) => {
     if (files.length === 0) return;
     

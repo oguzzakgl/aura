@@ -8,10 +8,10 @@ import { useDiagnosticStore } from '@/store/useDiagnosticStore';
 import { useTransientStore } from '@/store/useTransientStore';
 
 const FDI_TO_MESH_MAP: Record<number, number> = {
-  11: 2,  12: 20, 13: 29, 14: 8,  15: 30, 16: 7,  17: 21, 18: 24,
-  21: 3,  22: 12, 23: 25, 24: 14, 25: 26, 26: 13, 27: 4,  28: 19,
-  31: 15, 32: 5,  33: 27, 34: 18, 35: 6,  36: 17, 37: 16, 38: 28,
-  41: 1,  42: 9,  43: 31, 44: 23, 45: 11, 46: 22, 47: 10, 48: 32
+  11: 3,  12: 12, 13: 25, 14: 14, 15: 26, 16: 13, 17: 4,  18: 19,
+  21: 2,  22: 20, 23: 29, 24: 8,  25: 30, 26: 7,  27: 21, 28: 24,
+  31: 1,  32: 9,  33: 31, 34: 23, 35: 11, 36: 22, 37: 10, 38: 32,
+  41: 15, 42: 5,  43: 27, 44: 18, 45: 6,  46: 17, 47: 16, 48: 28
 };
 
 export const AuraJawModel = () => {
@@ -83,11 +83,12 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
 
   const clinicalMaterials = useMemo(() => ({
     teeth: new THREE.MeshStandardMaterial({ 
-      color: '#D2D2D7',
-      roughness: 0.35,
-      metalness: 0.05,
-      emissive: '#000000',
-      emissiveIntensity: 0,
+      color: '#E5E5EA',
+      roughness: 0.2,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.22,  // Premium yarı şeffaf cam estetiği
+      depthWrite: false, // Arka plandaki boyalı dişlerin parıldayarak görünmesini garanti eder
     }),
     extraction: new THREE.MeshStandardMaterial({
       color: '#FF3B30', roughness: 0.8, metalness: 0,
