@@ -126,7 +126,7 @@ def merge_findings(
     # Güvene göre sırala (en güvenli üstte)
     merged.sort(key=lambda x: x.get("confidence", 0), reverse=True)
 
-    status_emoji = {"Onaylı": "✅✅", "Muhtemel": "✅❓", "Belirsiz": "❓", "Çelişkili": "⚠️"}
+    status_emoji = {"Onaylı": "[OK]", "Muhtemel": "[?]", "Belirsiz": "[!]", "Çelişkili": "[X]"}
     for m in merged:
         emoji = status_emoji.get(m["consensus"], "")
         print(f"[CONSENSUS] {emoji} {m['pathology']:15s} | {m['consensus']:10s} | conf={m['confidence']} | via {m['engines']}")
