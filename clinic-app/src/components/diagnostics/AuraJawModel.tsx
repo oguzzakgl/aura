@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef } from 'react';
-import { useGLTF, Float, Environment, Center } from '@react-three/drei';
+import { useGLTF, Float, Environment, Center, Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useDiagnosticStore } from '@/store/useDiagnosticStore';
@@ -80,6 +80,14 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
   const findings = useDiagnosticStore((state) => state.findings);
+  const [testIndex, setTestIndex] = React.useState<number>(1);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTestIndex((prev) => (prev >= 32 ? 1 : prev + 1));
+    }, 1200); // 1.2 saniyede bir sonraki dişe geç
+    return () => clearInterval(interval);
+  }, []);
 
   const clinicalMaterials = useMemo(() => ({
     teeth: new THREE.MeshStandardMaterial({ 
@@ -188,10 +196,21 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
 
         mesh.visible = true; 
 
+        const isActiveTest = meshIndex === testIndex;
+
         if (isReconstructing) {
           mesh.material = clinicalMaterials.reconstructing;
         } else if (isScanning) {
           mesh.material = clinicalMaterials.scanning;
+        } else if (isActiveTest) {
+          // Teşhis Modu: Aktif test edilen dişi neon yeşili boya!
+          mesh.material = new THREE.MeshStandardMaterial({
+            color: '#34C759',
+            roughness: 0.1,
+            metalness: 0.9,
+            emissive: '#34C759',
+            emissiveIntensity: 0.4,
+          });
         } else if (matchedFinding) {
           const pathType = (matchedFinding.pathology || '').toLowerCase();
           const materialKey = pathType as keyof typeof clinicalMaterials;
@@ -234,6 +253,13 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         <Float speed={isReconstructing ? 3 : 1} rotationIntensity={0.2} floatIntensity={0.3}>
           <primitive object={scene} scale={0.12} />
         </Float>
+        <Html position={[0, 1.8, 0]} center>
+          <div className="bg-black/85 backdrop-blur-md border border-[#34C759] text-white px-5 py-3 rounded-2xl shadow-lg flex flex-col items-center gap-1 min-w-[240px] pointer-events-none transition-all duration-300">
+            <span className="text-[10px] uppercase tracking-widest text-[#34C759] font-bold">Aura 3D Teşhis Modu</span>
+            <span className="text-xl font-extrabold text-white">Mesh Index: {testIndex}</span>
+            <span className="text-[11px] text-gray-400">Yeşil parıldayan dişi takip edin</span>
+          </div>
+        </Html>
       </Center>
     </group>
   );
