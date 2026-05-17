@@ -153,11 +153,16 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         
         let matchedFinding: any = null;
         if (isTooth && findings && Array.isArray(findings)) {
-          matchedFinding = findings.find(f => {
-            const tId = f.tooth_id;
-            if (tId === undefined || tId === null || tId === '') return false;
-            return name.includes(`_${tId}`) || name === `tooth_${tId}`;
-          });
+          const match = name.match(/tooth_(\d+)/) || name.match(/_(\d+)/);
+          const meshToothId = match ? match[1] : null;
+          
+          if (meshToothId) {
+            matchedFinding = findings.find(f => {
+              const tId = f.tooth_id;
+              if (tId === undefined || tId === null || tId === '') return false;
+              return String(tId) === String(meshToothId);
+            });
+          }
         }
 
         mesh.visible = true; 
