@@ -123,13 +123,19 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
     })
   }), []);
 
-  useFrame((state) => {
+  const elapsedTimeRef = useRef(0);
+
+  useFrame((state, delta) => {
+    // 🛡️ @sec: R3F internal Clock deprecation kalkanı - delta tabanlı zaman birikimi
+    elapsedTimeRef.current += delta;
+    const time = elapsedTimeRef.current;
+
     if (isReconstructing && groupRef.current) {
-      const pulse = (Math.sin(state.clock.elapsedTime * 2) + 1) / 2;
+      const pulse = (Math.sin(time * 2) + 1) / 2;
       groupRef.current.scale.setScalar(0.12 + pulse * 0.002);
     }
     if (!isScanning && !isReconstructing && groupRef.current) {
-      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.02;
+      groupRef.current.position.y = Math.sin(time * 0.3) * 0.02;
     }
   });
 

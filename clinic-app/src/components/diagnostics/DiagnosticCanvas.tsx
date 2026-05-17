@@ -10,7 +10,20 @@ const DiagnosticCanvas = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // 🛡️ @sec: THREE.Clock Deprecation Siber Log Filtre Kalkanı
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('THREE.Clock')) {
+        return; // Deprecate uyarısını sessizce yut!
+      }
+      originalWarn(...args);
+    };
+
     setMounted(true);
+    
+    return () => {
+      console.warn = originalWarn; // Cleanup kalkanı
+    };
   }, []);
 
   if (!mounted) return (
