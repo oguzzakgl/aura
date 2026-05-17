@@ -24,22 +24,46 @@ const PROCEDURES = [
   { id: 'bone_loss', label: 'Kemik Kaybı', color: '#FF9500', icon: '📉' },
 ];
 
+const MESH_TO_FDI_MAP: Record<number, number> = {
+  1: 18, 2: 17, 3: 16, 4: 15, 5: 14, 6: 13, 7: 12, 8: 11,
+  9: 21, 10: 22, 11: 23, 12: 24, 13: 25, 14: 26, 15: 27, 16: 28,
+  17: 38, 18: 37, 19: 36, 20: 35, 21: 34, 22: 33, 23: 32, 24: 31,
+  25: 41, 26: 42, 27: 43, 28: 44, 29: 45, 30: 46, 31: 47, 32: 48
+};
+
 export const AuraOdontogram = () => {
   const findings = useDiagnosticStore((state) => state.findings);
   const applyFindings = useDiagnosticStore((state) => state.applyFindings);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   
-  const getToothStatus = (id: number) => {
-    const finding = findings.find(f => f.tooth_id === id);
+  const getToothStatus = (universalId: number) => {
+    const fdiId = MESH_TO_FDI_MAP[universalId];
+    if (!fdiId) return 'healthy';
+    
+    const finding = findings.find(f => {
+      const tId = f.tooth_id;
+      if (tId === undefined || tId === null || tId === '') return false;
+      return Number(tId) === fdiId;
+    });
     if (!finding) return 'healthy';
-    return finding.pathology.toLowerCase();
+    
+    const path = (finding.pathology || '').toLowerCase();
+    if (path === 'periodontitis' || path === 'periodontal') return 'bone_loss';
+    return path;
   };
 
-  const handleSelectProcedure = (toothId: number, procedureId: string) => {
-    const newFindings = findings.filter(f => f.tooth_id !== toothId);
+  const handleSelectProcedure = (universalToothId: number, procedureId: string) => {
+    const fdiId = MESH_TO_FDI_MAP[universalToothId];
+    if (!fdiId) return;
+
+    const newFindings = findings.filter(f => {
+      const tId = f.tooth_id;
+      if (tId === undefined || tId === null || tId === '') return true;
+      return Number(tId) !== fdiId;
+    });
     if (procedureId !== 'healthy') {
       newFindings.push({ 
-        tooth_id: toothId, 
+        tooth_id: fdiId, 
         pathology: procedureId, 
         severity: procedureId === 'extraction' ? 'Kritik' : 'Yüksek' 
       });

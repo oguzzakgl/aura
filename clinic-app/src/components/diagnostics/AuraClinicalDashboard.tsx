@@ -107,13 +107,13 @@ export const AuraClinicalDashboard = ({ children }: { children: React.ReactNode 
             const mappedFindings = consensusData
               .filter((f: any) => f.tooth_id != null && f.pathology !== 'clean')
               .map((f: any) => ({
-                tooth_id: fdiToUniversal[f.tooth_id] ?? f.tooth_id,
+                tooth_id: f.tooth_id,
                 pathology: f.pathology,
                 severity: f.severity,
               }));
             
             applyFindings(mappedFindings);
-            console.log("[AURA SYNC]: Consensus findings applied:", mappedFindings);
+            console.log("[AURA SYNC]: Consensus findings applied directly in FDI:", mappedFindings);
             
             // 4. Otomatik Tedavi Planı Üret (Özellik 6)
             try {
