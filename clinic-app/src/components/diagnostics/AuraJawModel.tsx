@@ -218,7 +218,7 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
   return (
     <group 
       ref={groupRef}
-      onClick={(e: any) => {
+      onPointerDown={(e: any) => {
         e.stopPropagation();
         const mesh = e.object;
         if (mesh && (mesh as THREE.Mesh).isMesh) {
