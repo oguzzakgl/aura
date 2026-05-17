@@ -5,6 +5,7 @@ from celery import Celery
 from services.storage_service import storage_service
 from services.yolo_dental_service import yolo_dental_service
 from services.consensus_engine import merge_findings
+from services.gemini_service import gemini_service
 
 # P1-2: Celery configuration with Redis broker
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
