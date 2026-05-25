@@ -68,3 +68,35 @@ class DicomPreprocessor:
             "resolution": f"{w}x{h}"
         }
 
+    @staticmethod
+    def generate_tiles(image_path: str, temp_dir: str) -> list:
+        """
+        Görüntüyü 4 eşit parçaya (2x2 grid) bölerek (Tiling/Ensembling) 
+        Gemini Vision modelinin yüksek çözünürlüklü detayları daha iyi görmesini sağlar.
+        """
+        from PIL import Image
+        import os
+        import uuid
+        
+        tiles = []
+        try:
+            with Image.open(image_path) as img:
+                # Convert to RGB in case of RGBA/DICOM
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                w, h = img.size
+                boxes = [
+                    (0, 0, w//2, h//2),       # Top-Left
+                    (w//2, 0, w, h//2),       # Top-Right
+                    (0, h//2, w//2, h),       # Bottom-Left
+                    (w//2, h//2, w, h)        # Bottom-Right
+                ]
+                for box in boxes:
+                    tile = img.crop(box)
+                    tile_path = os.path.join(temp_dir, f"tile_{uuid.uuid4().hex}.jpg")
+                    tile.save(tile_path, "JPEG", quality=90)
+                    tiles.append(tile_path)
+        except Exception as e:
+            print(f"[Preprocessing WARN]: Tiling failed: {e}")
+        return tiles
+

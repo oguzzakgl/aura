@@ -27,7 +27,7 @@ YOLO_CLASS_MAP: Dict[str, str] = {
     "periodontitis": "bone_loss",
 }
 
-CONFIDENCE_THRESHOLD = 0.25
+CONFIDENCE_THRESHOLD = 0.45
 
 
 class YoloDentalService:
@@ -40,52 +40,46 @@ class YoloDentalService:
     def _load_model(self):
         try:
             from ultralytics import YOLO
-            model_id = "ajeetsraina/clinical-dental-pathology-detector"
-            print(f"[AURA YOLO]: Loading model from {model_id}...")
-            self.model = YOLO(model_id)
-            print(f"[AURA YOLO]: Model loaded. Classes: {self.model.names}")
+            
+            # P1: Yerel Modeli Önceliklendir
+            local_model_path = os.path.join(os.getcwd(), "models", "best_yolo_dental.pt")
+            
+            if os.path.exists(local_model_path):
+                print(f"[AURA YOLO]: Kendi özel modelimiz yükleniyor: {local_model_path}")
+                self.model = YOLO(local_model_path)
+            else:
+                # Modeli henüz eğitmediysek (dosya yoksa) programın çökmemesi için
+                # Standart YOLOv8 nesne tanıma modelini (yolov8n.pt) yedek (fallback) olarak yükle
+                print(f"[AURA YOLO WARN]: Özel model bulunamadı ({local_model_path}).")
+                print("[AURA YOLO]: Yedek (Fallback) olarak standart 'yolov8n.pt' yükleniyor...")
+                self.model = YOLO("yolov8n.pt") # Ultralytics bunu otomatik indirir
+                
+            print(f"[AURA YOLO]: Model yüklendi. Algılanan sınıflar: {self.model.names}")
+            
         except Exception as e:
-            print(f"[AURA YOLO ERROR]: Model load failed: {e}")
+            print(f"[AURA YOLO ERROR]: Model yükleme başarısız oldu: {e}")
 
-    def map_bbox_to_fdi(self, x_center: float, y_center: float, width: float, height: float) -> int:
+    def map_bbox_to_universal(self, x_center: float, y_center: float, width: float, height: float) -> int:
         """
-        P1-1 / P4-4: Geometrik Dental Haritalama (FDI Projeksiyonu).
+        P1-1 / P4-4: Geometrik Dental Haritalama (Universal Projeksiyonu).
         Bir panoramik röntgende bounding box merkezini (x, y) resim boyutlarına (W, H)
-        oranlayarak yaklaşık FDI Diş Numarasını tahmin eder.
+        oranlayarak 1-32 arasındaki Universal Diş Numarasını tahmin eder.
+        Kullanıcı Kuralı: Üst çene soldan sağa 1-16, Alt çene soldan sağa 17-32.
         """
         # Görüntüyü üst (Maxilla) ve alt (Mandible) olarak ikiye böl
         is_upper = y_center < (height / 2.0)
         
-        # X oranını bul (0.0 - 1.0)
+        # X oranını bul (0.0 - 1.0) (Görselin solu 0.0, sağı 1.0)
         x_ratio = x_center / width
         
-        # Üst çene (Maxilla): Soldan sağa (Görselin solundan sağına)
-        # Hastanın Sağı (Görselin Solu) -> Hastanın Solu (Görselin Sağı)
-        # Dişler: 18 -> 11 (sol yarı), 21 -> 28 (sağ yarı)
         if is_upper:
-            if x_ratio < 0.5:
-                # 0.0 ile 0.5 arası -> 18'den 11'e (8 diş)
-                segment = int(x_ratio * 2.0 * 8)
-                fdi = 18 - segment
-                return max(11, min(18, fdi))
-            else:
-                # 0.5 ile 1.0 arası -> 21'den 28'e (8 diş)
-                segment = int((x_ratio - 0.5) * 2.0 * 8)
-                fdi = 21 + segment
-                return max(21, min(28, fdi))
-        # Alt çene (Mandible): Soldan sağa
-        # Dişler: 48 -> 41 (sol yarı), 31 -> 38 (sağ yarı)
+            # Üst çene: Soldan sağa 1'den 16'ya (16 diş)
+            tooth_id = int(x_ratio * 16) + 1
+            return max(1, min(16, tooth_id))
         else:
-            if x_ratio < 0.5:
-                # 0.0 ile 0.5 arası -> 48'den 41'e (8 diş)
-                segment = int(x_ratio * 2.0 * 8)
-                fdi = 48 - segment
-                return max(41, min(48, fdi))
-            else:
-                # 0.5 ile 1.0 arası -> 31'den 38'e (8 diş)
-                segment = int((x_ratio - 0.5) * 2.0 * 8)
-                fdi = 31 + segment
-                return max(31, min(38, fdi))
+            # Alt çene: Soldan sağa 17'den 32'ye (16 diş)
+            tooth_id = int(x_ratio * 16) + 17
+            return max(17, min(32, tooth_id))
 
     def detect(self, image_path: str) -> List[Dict]:
         """Görüntüde diş patolojilerini tespit eder."""
@@ -96,6 +90,7 @@ class YoloDentalService:
             results = self.model.predict(
                 source=image_path,
                 conf=CONFIDENCE_THRESHOLD,
+                augment=True,
                 verbose=False,
             )
         except Exception as e:
@@ -122,8 +117,8 @@ class YoloDentalService:
                 x_center = (x1 + x2) / 2.0
                 y_center = (y1 + y2) / 2.0
                 
-                # Geometrik FDI tahmini
-                predicted_tooth_id = self.map_bbox_to_fdi(x_center, y_center, img_w, img_h)
+                # Geometrik Universal tahmin
+                predicted_tooth_id = self.map_bbox_to_universal(x_center, y_center, img_w, img_h)
 
                 findings.append({
                     "pathology": pathology,

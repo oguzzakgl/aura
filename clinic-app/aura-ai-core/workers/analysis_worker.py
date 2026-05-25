@@ -34,7 +34,9 @@ def run_analysis_core(self, scan_url: str, session_id: str):
     """
     temp_dir = os.path.join(os.getcwd(), ".tmp_scans")
     os.makedirs(temp_dir, exist_ok=True)
-    temp_path = os.path.join(temp_dir, f"{uuid.uuid4().hex}.bin")
+    # Orijinal dosya uzantısını koru (PIL/Gemini/YOLO dosya türünü uzantıdan anlar)
+    original_ext = os.path.splitext(scan_url)[1].lower() or ".jpg"
+    temp_path = os.path.join(temp_dir, f"{uuid.uuid4().hex}{original_ext}")
     
     try:
         # 1. Download from secure storage
@@ -77,14 +79,16 @@ def run_analysis_core(self, scan_url: str, session_id: str):
         
         # Helper to run async in celery (and nest-asyncio for FastAPI fallback)
         def run_async(coro):
-            import nest_asyncio
-            nest_asyncio.apply()
+            import asyncio
             try:
-                loop = asyncio.get_event_loop()
+                # ThreadPool / Yeni thread içinde temiz başlangıç (FastAPI fallback)
+                return asyncio.run(coro)
             except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coro)
+                # Mevcut bir loop varsa (Celery veya başka bir yer)
+                import nest_asyncio
+                nest_asyncio.apply()
+                loop = asyncio.get_event_loop()
+                return loop.run_until_complete(coro)
             
         gemini_text = run_async(gemini_service.analyze_radiograph(local_file))
         
@@ -114,21 +118,69 @@ def run_analysis_core(self, scan_url: str, session_id: str):
         }
         agent_findings = run_async(orchestrator.consult(scan_data))
 
-        # 5. Consensus & Merge Agent Findings
-        consensus_findings = merge_findings(yolo_findings, gemini_findings)
+        # 4.5 REFLEXION ENGINE: Çatışma Tespiti ve İkinci Görüş (Double-Check)
+        self.update_state(state='PROGRESS', meta={'step': 'Reflexion: Çapraz Sorgulama Yapılıyor...'})
         
-        # Ajanların kararlarını konsensüse ekle (Eğer zaten yoksa veya ek bilgi sunuyorsa)
+        # YOLO bulmuş ama Gemini listesinde olmayanları (çatışmaları) bul
+        conflicts = []
+        for yf in yolo_findings:
+            y_tooth = yf.get("tooth_id")
+            y_path = yf.get("pathology")
+            
+            # Gemini'nin ilk raporunda bu diş ve patoloji var mı?
+            found_in_gemini = any(
+                str(gf.get("tooth_id")) == str(y_tooth) and gf.get("pathology") == y_path
+                for gf in gemini_findings
+            )
+            
+            if not found_in_gemini and y_tooth and y_path:
+                conflicts.append(yf)
+                
+        if conflicts:
+            print(f"[AURA REFLEXION]: {len(conflicts)} adet çatışma tespit edildi. Gemini'ye ikinci görüş soruluyor...")
+            import json
+            # Orijinal resmi worker'ın bildiği dosya yolundan okumak için
+            # (image_path aslında kwargs içinde olabilir, ama burada doğrudan download edilmiş `local_path` var)
+            reflexion_json_str = run_async(gemini_service.verify_conflicts(local_path, conflicts))
+            
+            # İkinci görüş sonuçlarını parse et
+            try:
+                # JSON block temizle
+                if "```json" in reflexion_json_str:
+                    reflexion_json_str = reflexion_json_str.split("```json")[1].split("```")[0]
+                elif "```" in reflexion_json_str:
+                    reflexion_json_str = reflexion_json_str.split("```")[1].split("```")[0]
+                    
+                reflexion_results = json.loads(reflexion_json_str.strip())
+                if isinstance(reflexion_results, list):
+                    for rr in reflexion_results:
+                        rr["source"] = "gemini_reflexion" # İkinci turdan geldiğini belirt
+                        gemini_findings.append(rr)
+                        print(f"[AURA REFLEXION]: Gemini hatasını kabul etti, {rr.get('tooth_id')} numaralı diş eklendi.")
+            except Exception as e:
+                print(f"[AURA REFLEXION ERROR]: JSON parse hatası: {e}")
+
+        # 5. Consensus & Merge Agent Findings (Artık Reflexion sonuçları da gemini_findings içinde)
+        consensus_findings = merge_findings(yolo_findings, gemini_findings)
+        # Ajanların kararlarını konsensüse ekle (Sadece tooth_id VE pathology içerenler)
         for af in agent_findings:
+            t_id = af.get("tooth_id")
+            pathology = af.get("pathology")
+            
+            # P1 Anti-Halüsinasyon: tooth_id veya pathology yoksa bu ajan bulgusunu ATLA
+            if not t_id or not pathology:
+                continue
+            
             # Aynı dişte aynı patolojinin konsensüste olup olmadığını kontrol et
             exists = any(
-                str(cf.get("tooth_id")) == str(af.get("tooth_id")) and 
-                cf.get("pathology") == af.get("pathology")
+                str(cf.get("tooth_id")) == str(t_id) and 
+                cf.get("pathology") == pathology
                 for cf in consensus_findings
             )
             if not exists:
                 consensus_findings.append({
-                    "tooth_id": af.get("tooth_id"),
-                    "pathology": af.get("pathology", "periodontitis"),
+                    "tooth_id": t_id,
+                    "pathology": pathology,
                     "severity": af.get("severity", "Orta"),
                     "consensus": "Onaylı" if af.get("confidence", 0) > 0.90 else "Muhtemel",
                     "confidence": round(af.get("confidence", 0.88), 2),

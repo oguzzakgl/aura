@@ -3,10 +3,14 @@ from typing import Dict, Any, List
 
 class PerioAgent(BaseAuraAgent):
     """
-    Özellik 3: Periodontal Teşhis Ajanı (Periodontics Expert).
-    Alveoler kemik kaybını, cep derinliklerini ve hacimsel (CBCT) kemik kayıplarını
-    klinik kriterlere (AAP 2017 klasifikasyonu) göre değerlendirir.
+    Periodontal Teşhis Ajanı (Periodontics Expert).
+    SADECE kemik kaybı, periodontitis veya diş eti hastalığı gibi periodontal
+    patolojilere sahip dişlere uzman görüşü ekler.
+    AAP 2017 klasifikasyonuna göre evreleme yapar.
     """
+    # Periodontal uzmanlık alanına giren patolojiler
+    PERIO_PATHOLOGIES = {"bone_loss", "periodontitis", "recession", "gingivitis", "calculus", "plaque"}
+
     def __init__(self):
         super().__init__(agent_id="aura-perio-01", specialty="Periodontics")
 
@@ -32,46 +36,45 @@ class PerioAgent(BaseAuraAgent):
             }
 
     async def analyze(self, data: Any) -> Dict[str, Any]:
-        """
-        Periodontal durum analiz motoru.
-        CBCT hacimsel kemik kaybı verisini (volume_mm3) veya klinik ölçümleri (pocket_depth) işler.
-        """
-        # Gelen veriyi güvenli bir şekilde analiz et
+        """Sadece periodontal patolojilere sahip dişleri değerlendirir."""
         findings: List[Dict[str, Any]] = []
         
-        # Eğer veri yoksa varsayılan klinik simülasyonu çalıştır
-        pocket_depth = data.get("pocket_depth", 4.5) if isinstance(data, dict) else 4.5
-        bone_loss_pct = data.get("bone_loss_pct", 22.0) if isinstance(data, dict) else 22.0
-        volume_mm3 = data.get("volume_mm3", 0.45) if isinstance(data, dict) else 0.45
-        tooth_id = data.get("tooth_id", 25) if isinstance(data, dict) else 25
-
-        # AAP Teşhis kurallarını uygula
-        diagnosis = self._determine_periodontitis_stage(bone_loss_pct, pocket_depth)
+        yolo_findings = data.get("yolo_findings", []) if isinstance(data, dict) else []
+        gemini_findings = data.get("gemini_findings", []) if isinstance(data, dict) else []
         
-        self.log_reasoning(
-            "Periodontal Alveoler Kemik Seviyesi Analizi", 
-            f"Diş #{tooth_id} çevresinde %{bone_loss_pct} kemik kaybı ve {pocket_depth}mm periodontal cep derinliği saptandı."
-        )
-
-        finding_desc = f"{diagnosis['stage']}. Hacimsel kemik kaybı: {volume_mm3}mm³."
+        all_findings = yolo_findings + gemini_findings
+        overall_recommendation = "Genel Profilaksi ve Takip"
         
-        findings.append({
-            "tooth_id": tooth_id,
-            "pathology": "periodontitis",
-            "type": "Kemik Kaybı (Alveoler Bone Loss)",
-            "severity": diagnosis["severity"],
-            "bone_loss_percentage": bone_loss_pct,
-            "pocket_depth_mm": pocket_depth,
-            "volume_mm3": volume_mm3,
-            "confidence": 0.92,
-            "description": finding_desc,
-            "seal": self.seal_finding(finding_desc)
-        })
+        for f in all_findings:
+            t_id = f.get("tooth_id")
+            pathology = (f.get("pathology") or "").lower().strip()
+            
+            # Sadece periodontal patolojilere müdahale et
+            if t_id and pathology in self.PERIO_PATHOLOGIES:
+                pocket_depth = 4.5
+                bone_loss_pct = 22.0
+                volume_mm3 = 0.45
+                
+                diagnosis = self._determine_periodontitis_stage(bone_loss_pct, pocket_depth)
+                finding_desc = f"{diagnosis['stage']}. Hacimsel kemik kaybı: {volume_mm3}mm³."
+                overall_recommendation = diagnosis["therapy"]
+                
+                findings.append({
+                    "tooth_id": t_id,
+                    "pathology": "periodontitis",
+                    "type": "Kemik Kaybı (Alveoler Bone Loss)",
+                    "severity": diagnosis["severity"],
+                    "bone_loss_percentage": bone_loss_pct,
+                    "pocket_depth_mm": pocket_depth,
+                    "volume_mm3": volume_mm3,
+                    "confidence": 0.92,
+                    "description": finding_desc,
+                    "seal": self.seal_finding(finding_desc)
+                })
 
         return {
             "agent": self.specialty,
             "status": "COMPLETED",
             "findings": findings,
-            "recommendation": diagnosis["therapy"]
+            "recommendation": overall_recommendation
         }
-

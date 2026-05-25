@@ -44,72 +44,78 @@ def merge_findings(
     @return: Birleştirilmiş ve statülenmiş bulgular listesi
     """
     merged: List[Dict] = []
+    
+    # 1. Her bulguyu tooth_id'ye göre grupla
+    by_tooth: Dict[int, Dict[str, List[Dict]]] = {}
+    
+    def add_to_group(findings_list, source_name):
+        for f in findings_list:
+            t_id = f.get("tooth_id")
+            if t_id is None:
+                continue
+            if t_id not in by_tooth:
+                by_tooth[t_id] = {"yolo": [], "gemini": []}
+            by_tooth[t_id][source_name].append(f)
 
-    # Gemini bulgularını patoloji bazlı indexle
-    gemini_by_pathology: Dict[str, List[Dict]] = {}
-    for gf in gemini_findings:
-        p = normalize_pathology(gf.get("pathology", ""))
-        gemini_by_pathology.setdefault(p, []).append(gf)
-
-    # YOLO bulgularını patoloji bazlı indexle
-    yolo_by_pathology: Dict[str, List[Dict]] = {}
-    for yf in yolo_findings:
-        p = normalize_pathology(yf.get("pathology", ""))
-        yolo_by_pathology.setdefault(p, []).append(yf)
-
-    # Tüm benzersiz patoloji türlerini topla
-    all_pathologies = set(gemini_by_pathology.keys()) | set(yolo_by_pathology.keys())
-
-    for pathology in all_pathologies:
-        yolo_hits = yolo_by_pathology.get(pathology, [])
-        gemini_hits = gemini_by_pathology.get(pathology, [])
-
-        has_yolo = len(yolo_hits) > 0
-        has_gemini = len(gemini_hits) > 0
-
-        if has_yolo and has_gemini:
-            # ✅✅ İKİ MOTOR DA ONAYLIYOR
-            for gf in gemini_hits:
-                yolo_conf = max(y.get("confidence", 0) for y in yolo_hits)
-                gemini_conf = gf.get("confidence", 0.80)
-                avg_conf = (yolo_conf + gemini_conf) / 2
+    add_to_group(yolo_findings, "yolo")
+    add_to_group(gemini_findings, "gemini")
+    
+    # 2. Her diş için konsensüs ara
+    for t_id, sources in by_tooth.items():
+        yolo_list = sources["yolo"]
+        gemini_list = sources["gemini"]
+        
+        # O dişteki tüm benzersiz patolojiler
+        all_pathologies = set([normalize_pathology(y.get("pathology","")) for y in yolo_list]) | \
+                          set([normalize_pathology(g.get("pathology","")) for g in gemini_list])
+        
+        for pathology in all_pathologies:
+            y_hits = [y for y in yolo_list if normalize_pathology(y.get("pathology","")) == pathology]
+            g_hits = [g for g in gemini_list if normalize_pathology(g.get("pathology","")) == pathology]
+            
+            has_yolo = len(y_hits) > 0
+            has_gemini = len(g_hits) > 0
+            
+            if has_yolo and has_gemini:
+                # ✅✅ İKİ MOTOR DA AYNI DİŞTE AYNI ŞEYİ BULDU
+                y = y_hits[0]
+                g = g_hits[0]
+                avg_conf = (y.get("confidence", 0) + g.get("confidence", 0.80)) / 2
                 merged.append({
-                    "tooth_id": gf.get("tooth_id"),
+                    "tooth_id": t_id,
                     "pathology": pathology,
-                    "severity": gf.get("severity", "Orta"),
+                    "severity": g.get("severity", "Orta"),
                     "consensus": "Onaylı",
                     "confidence": round(min(0.99, avg_conf + 0.05), 2),
                     "engines": "YOLO + Gemini",
-                    "description": gf.get("description"),
+                    "description": g.get("description"),
+                    "bbox": y.get("bbox")  # EN KRİTİK NOKTA: BBOX KORUNUYOR (2D ve 3D Senkronizasyonu)
                 })
-
-        elif has_yolo and not has_gemini:
-            # ✅❓ SADECE YOLO — Görsel kanıt var ama Gemini görmedi
-            for yf in yolo_hits:
+            elif has_yolo and not has_gemini:
+                # ✅❓ SADECE YOLO
+                y = y_hits[0]
                 merged.append({
-                    "tooth_id": yf.get("tooth_id"),
+                    "tooth_id": t_id,
                     "pathology": pathology,
                     "severity": "Orta",
                     "consensus": "Muhtemel",
-                    "confidence": round(yf.get("confidence", 0.5) * 0.85, 2),
+                    "confidence": round(y.get("confidence", 0.5) * 0.60, 2),
                     "engines": "YOLO",
-                    "bbox": yf.get("bbox"),
+                    "bbox": y.get("bbox")
                 })
-
-        elif has_gemini and not has_yolo:
-            # ❓ SADECE GEMINİ — Tek kaynak
-            for gf in gemini_hits:
-                gemini_conf = gf.get("confidence", 0.55)
-                # Gemini'nin kendi güvenini kullan ama %70 ile sınırla
-                capped_conf = min(0.70, gemini_conf)
+            elif has_gemini and not has_yolo:
+                # ❓ SADECE GEMINİ — Gemini'nin kendi güvenine dayalı (çift motor kadar güçlü değil ama gerçekçi)
+                g = g_hits[0]
+                gemini_conf = g.get("confidence", 0.70)
+                adjusted_conf = round(gemini_conf * 0.75, 2)  # Gemini güveninin %75'i
                 merged.append({
-                    "tooth_id": gf.get("tooth_id"),
+                    "tooth_id": t_id,
                     "pathology": pathology,
-                    "severity": gf.get("severity", "Orta"),
-                    "consensus": "Belirsiz",
-                    "confidence": round(capped_conf, 2),
+                    "severity": g.get("severity", "Orta"),
+                    "consensus": "Muhtemel",
+                    "confidence": adjusted_conf,
                     "engines": "Gemini",
-                    "description": gf.get("description"),
+                    "description": g.get("description")
                 })
 
     # Eğer hiç bulgu yoksa temiz rapor

@@ -4,7 +4,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Calendar, Users, Settings, LogOut, 
   ChevronLeft, Bell, Search, Stethoscope, Clock, 
-  CreditCard, UserCircle, Bot 
+  CreditCard, UserCircle, Bot, Sparkles 
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const sidebarItems = [
     { icon: LayoutDashboard, label: t('dashboard'), href: '/dashboard' },
     { icon: Bot, label: 'Aura AI', href: '/dashboard/ai-assistant' },
+    { icon: Sparkles, label: 'Smile Design', href: '/dashboard/smile-design' },
     { icon: Calendar, label: t('calendar'), href: '/dashboard/calendar' },
     { icon: Clock, label: t('appointments'), href: '/dashboard/appointments' },
     { icon: Users, label: t('patients'), href: '/dashboard/patients' },

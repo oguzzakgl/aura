@@ -49,7 +49,7 @@ class FallbackLLMService:
                 return data["response"]
             raise Exception(f"Ollama Llama 3.1 error: {response.text}")
 
-    async def analyze_radiograph_fallback(self, image_path: str) -> str:
+    async def analyze_radiograph_fallback(self, image_path: str, rag_context: str = "") -> str:
         print("[FALLBACK ACTIVE]: Circuit breaker tripped. Initiating multi-model failover chain.")
         
         # 1. GPT-4o-mini Fallback Denemesi
@@ -87,28 +87,12 @@ class FallbackLLMService:
                         "description": f"[LOCAL YOLO] {yf.get('raw_label', 'patoloji')} saptandı. Görsel koordinat: {yf.get('bbox')}"
                     })
             else:
-                fallback_json = [
-                    {
-                        "tooth_id": None, 
-                        "pathology": "lesion", 
-                        "severity": "Orta", 
-                        "confidence": 0.4, 
-                        "is_fallback": True,
-                        "description": "[SİSTEM UYARISI] Aura AI ana motoru (Gemini / GPT-4o-mini) çevrimdışı. YOLO taraması temiz veya model yüklenemedi."
-                    }
-                ]
+                # YOLO da boş döndüyse uydurma diş numarası ÜRETME — Halüsinasyon yasak (P1)
+                fallback_json = []
         except Exception as e:
             print(f"[FALLBACK INFO] Local YOLO failed: {e}")
-            fallback_json = [
-                {
-                    "tooth_id": None, 
-                    "pathology": "lesion", 
-                    "severity": "Orta", 
-                    "confidence": 0.4, 
-                    "is_fallback": True,
-                    "description": f"[SİSTEM UYARISI] Aura AI ana motoru (Gemini / GPT-4o-mini) çevrimdışı. Acil durum yedeklilik devrede. Hata: {str(e)}"
-                }
-            ]
+            # Uydurma diş numarası ÜRETME — Halüsinasyon yasak (P1)
+            fallback_json = []
         
         fallback_text = f"""
 **[SİSTEM UYARISI: AURA AI ANA MOTORU ÇEVRİMDIŞI - ACİL YEDEKLİLİK AKTİF]**

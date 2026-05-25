@@ -22,7 +22,12 @@ class StorageService:
         Büyük dosyaları FastAPI hafızası yerine Supabase Storage'a atar.
         """
         if not self.supabase:
-            return f"mock_url_for_{os.path.basename(file_path)}"
+            import shutil
+            mock_storage_dir = os.path.join(os.getcwd(), "mock_storage", bucket_name)
+            os.makedirs(mock_storage_dir, exist_ok=True)
+            mock_path = os.path.join(mock_storage_dir, f"{uuid.uuid4()}_{os.path.basename(file_path)}")
+            shutil.copy2(file_path, mock_path)
+            return mock_path
             
         file_name = f"{uuid.uuid4()}_{os.path.basename(file_path)}"
         
@@ -41,6 +46,9 @@ class StorageService:
         Celery worker'ın dosyayı güvenle indirmesini sağlar.
         """
         if not self.supabase:
+            import shutil
+            if os.path.exists(file_url):
+                shutil.copy2(file_url, dest_path)
             return dest_path
             
         import requests

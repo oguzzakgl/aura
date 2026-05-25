@@ -37,13 +37,10 @@ export const AuraOdontogram = () => {
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   
   const getToothStatus = (universalId: number) => {
-    const fdiId = MESH_TO_FDI_MAP[universalId];
-    if (!fdiId) return 'healthy';
-    
     const finding = findings.find(f => {
       const tId = f.tooth_id;
-      if (tId === undefined || tId === null || tId === '') return false;
-      return Number(tId) === fdiId;
+      if (tId === undefined || tId === null) return false;
+      return Number(tId) === universalId;
     });
     if (!finding) return 'healthy';
     
@@ -53,17 +50,14 @@ export const AuraOdontogram = () => {
   };
 
   const handleSelectProcedure = (universalToothId: number, procedureId: string) => {
-    const fdiId = MESH_TO_FDI_MAP[universalToothId];
-    if (!fdiId) return;
-
     const newFindings = findings.filter(f => {
       const tId = f.tooth_id;
-      if (tId === undefined || tId === null || tId === '') return true;
-      return Number(tId) !== fdiId;
+      if (tId === undefined || tId === null) return true;
+      return Number(tId) !== universalToothId;
     });
     if (procedureId !== 'healthy') {
       newFindings.push({ 
-        tooth_id: fdiId, 
+        tooth_id: universalToothId, 
         pathology: procedureId, 
         severity: procedureId === 'extraction' ? 'Kritik' : 'Yüksek' 
       });

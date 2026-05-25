@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
       {/* LEFT COLUMN: BRANDING & FEATURES */}
-      <div className="md:w-1/2 bg-linear-to-br from-brand-primary to-brand-dark p-12 flex flex-col justify-between text-white">
+      <div className="md:w-1/2 bg-linear-to-br from-blue-600 to-indigo-900 p-12 flex flex-col justify-between text-white">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -44,7 +44,7 @@ export default function LoginPage() {
           className="flex items-center gap-2"
         >
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-            <Heart className="text-brand-primary w-6 h-6 fill-current" />
+            <Heart className="text-blue-600 w-6 h-6 fill-current" />
           </div>
           <span className="text-2xl font-bold tracking-tight">Aura</span>
         </motion.div>
@@ -84,7 +84,7 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT COLUMN: LOGIN FORM */}
-      <div className="md:w-1/2 bg-medical-bg flex items-center justify-center p-8">
+      <div className="md:w-1/2 bg-(--background) flex items-center justify-center p-8">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -103,26 +103,26 @@ export default function LoginPage() {
                 type="email" 
                 required
                 placeholder="doctor@clinic.com"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-white text-slate-900 border border-slate-200 focus:border-(--primary) focus:ring-4 focus:ring-blue-500/20 transition-all outline-none"
               />
             </div>
             
             <div>
               <div className="flex justify-between mb-2">
                 <label className="block text-sm font-medium text-slate-700">Password</label>
-                <a href="#" className="text-xs text-brand-primary hover:underline font-medium">Forgot?</a>
+                <a href="#" className="text-xs text-blue-600 hover:underline font-medium">Forgot?</a>
               </div>
               <input 
                 type="password" 
                 required
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-white text-slate-900 border border-slate-200 focus:border-(--primary) focus:ring-4 focus:ring-blue-500/20 transition-all outline-none"
               />
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-brand-primary/25 active:scale-[0.98]"
+              className="w-full bg-(--primary) hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]"
             >
               Sign In
             </button>
@@ -131,7 +131,7 @@ export default function LoginPage() {
           <div className="mt-8 text-center">
             <p className="text-sm text-slate-500">
               Don't have an account? {' '}
-              <Link href="/auth/signup" className="text-brand-primary font-bold hover:underline">
+              <Link href="/auth/signup" className="text-blue-600 font-bold hover:underline">
                 Start free trial
               </Link>
             </p>

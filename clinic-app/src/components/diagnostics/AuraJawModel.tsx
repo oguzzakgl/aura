@@ -7,12 +7,7 @@ import * as THREE from 'three';
 import { useDiagnosticStore } from '@/store/useDiagnosticStore';
 import { useTransientStore } from '@/store/useTransientStore';
 
-const FDI_TO_MESH_MAP: Record<number, number> = {
-  11: 1,  12: 20, 13: 29, 14: 8,  15: 30, 16: 7,  17: 21, 18: 24,
-  21: 2,  22: 3,  23: 25, 24: 14, 25: 26, 26: 13, 27: 4,  28: 19,
-  31: 5,  32: 12, 33: 27, 34: 18, 35: 6,  36: 17, 37: 16, 38: 28,
-  41: 15, 42: 9,  43: 31, 44: 23, 45: 11, 46: 22, 47: 10, 48: 32
-};
+
 
 export const AuraJawModel = () => {
   const dynamicModelUrl = useDiagnosticStore((state) => state.dynamicModelUrl);
@@ -80,14 +75,6 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
   const findings = useDiagnosticStore((state) => state.findings);
-  const [testIndex, setTestIndex] = React.useState<number>(1);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setTestIndex((prev) => (prev >= 32 ? 1 : prev + 1));
-    }, 1200); // 1.2 saniyede bir sonraki dişe geç
-    return () => clearInterval(interval);
-  }, []);
 
   const clinicalMaterials = useMemo(() => ({
     teeth: new THREE.MeshStandardMaterial({ 
@@ -164,71 +151,110 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
   });
 
   React.useEffect(() => {
+    // 1. KUSURSUZ SPATIAL K-NN HARİTALAMA (Geometrik Uzamsal Kilitleme)
+    // Mesh isimleri (tooth1, root_1) tutarsız olduğu için isimleri tamamen yok sayıyoruz.
+    // Her mesh'in 3D uzaydaki fiziksel merkezi hesaplanıp, ideal anatomik koordinatlara en yakın (Nearest Neighbor) dişe kilitleniyor.
+    const IDEAL_TEETH = [
+      // Üst Sağ Çene
+      { uId: 1, x: -9.63, y: 5.52, z: 0.16 }, { uId: 2, x: -9.16, y: 5.86, z: 3.03 },
+      { uId: 3, x: -8.48, y: 5.60, z: 5.82 }, { uId: 4, x: -7.88, y: 5.07, z: 8.13 },
+      { uId: 5, x: -6.97, y: 4.97, z: 10.11 }, { uId: 6, x: -5.82, y: 5.59, z: 11.83 },
+      { uId: 7, x: -3.97, y: 5.02, z: 13.22 }, { uId: 8, x: 0.02, y: 2.21, z: 14.46 },
+      // Üst Sol Çene
+      { uId: 9, x: 0.02, y: 4.68, z: 13.90 }, { uId: 10, x: 4.04, y: 5.02, z: 13.21 },
+      { uId: 11, x: 5.86, y: 5.59, z: 11.84 }, { uId: 12, x: 7.02, y: 4.97, z: 10.11 },
+      { uId: 13, x: 7.93, y: 5.07, z: 8.13 }, { uId: 14, x: 8.52, y: 5.60, z: 5.82 },
+      { uId: 15, x: 9.21, y: 5.86, z: 3.03 }, { uId: 16, x: 9.66, y: 5.52, z: 0.17 },
+      // Alt Sol Çene
+      { uId: 17, x: 9.81, y: 0.38, z: -0.82 }, { uId: 18, x: 9.01, y: -0.41, z: 2.16 },
+      { uId: 19, x: 8.24, y: -0.73, z: 5.23 }, { uId: 20, x: 7.60, y: -0.57, z: 7.62 },
+      { uId: 21, x: 6.71, y: -0.85, z: 9.56 }, { uId: 22, x: 5.43, y: -1.74, z: 11.07 },
+      { uId: 23, x: 3.49, y: -1.42, z: 12.41 }, { uId: 24, x: 0.02, y: -1.61, z: 12.48 },
+      // Alt Sağ Çene (Not: 25 modelde eksik, o yüzden 24 ile aynı yere kilitlenir)
+      { uId: 25, x: -0.02, y: -1.61, z: 12.48 }, { uId: 26, x: -3.45, y: -1.46, z: 12.41 },
+      { uId: 27, x: -5.39, y: -1.73, z: 11.05 }, { uId: 28, x: -6.67, y: -0.85, z: 9.56 },
+      { uId: 29, x: -7.55, y: -0.57, z: 7.62 }, { uId: 30, x: -8.20, y: -0.73, z: 5.23 },
+      { uId: 31, x: -8.97, y: -0.41, z: 2.16 }, { uId: 32, x: -9.76, y: 0.39, z: -0.82 }
+    ];
+
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        const name = (mesh.name || '').toLowerCase();
+        if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
         
-        // 🛡️ Kırılmaz Regex Kalkanı: .stl_X veya _X en son sayısal grubunu yakala
-        const match = name.match(/_(\d+)$/) || name.match(/\.stl_(\d+)/);
-        const meshIndex = match ? parseInt(match[1]) : 0;
+        const center = new THREE.Vector3();
+        mesh.geometry.boundingBox?.getCenter(center);
         
-        // 🔬 ANATOMİK KOORDİNAT TEŞHİSİ: Her mesh'in sahnedeki gerçek X, Y, Z konumunu logla
-        const worldPos = new THREE.Vector3();
-        mesh.getWorldPosition(worldPos);
-        console.log(`[AURA 3D GEOMETRY]: Mesh: ${mesh.name} (Index: ${meshIndex}) -> Position X: ${worldPos.x.toFixed(4)}, Y: ${worldPos.y.toFixed(4)}, Z: ${worldPos.z.toFixed(4)}`);
+        // R3F sahne rotasyonlarını/scale'lerini iptal et ve raw GLB kök koordinatını bul
+        mesh.updateWorldMatrix(true, false);
+        scene.updateWorldMatrix(true, false);
+        const localToGlbMatrix = new THREE.Matrix4().copy(scene.matrixWorld).invert().multiply(mesh.matrixWorld);
+        center.applyMatrix4(localToGlbMatrix);
+
+        // En yakın ideal anatomik koordinatı bul (Euclidean Distance)
+        let closestUId = 1;
+        let minDist = Infinity;
         
+        IDEAL_TEETH.forEach(ideal => {
+          const dx = center.x - ideal.x;
+          const dy = center.y - ideal.y;
+          const dz = center.z - ideal.z;
+          const dist = dx * dx + dy * dy + dz * dz;
+          if (dist < minDist) {
+            minDist = dist;
+            closestUId = ideal.uId;
+          }
+        });
+
+        // 50 birim karesinden uzaksa bu diş değil, başka bir modeldir, atla.
+        if (minDist < 50.0) {
+          mesh.userData.universalId = closestUId;
+        }
+      }
+    });
+
+    // 2. Teşhisleri Uygula
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const uId = mesh.userData.universalId;
+        
+        if (!uId) return;
+
+        mesh.visible = true; 
+
         let matchedFinding: any = null;
         if (findings && Array.isArray(findings)) {
           matchedFinding = findings.find(f => {
             const tId = f.tooth_id;
-            if (tId === undefined || tId === null || tId === '') return false;
+            if (tId === undefined || tId === null) return false;
             
-            // FDI tooth_id'sinin mesh üzerindeki ardışık index karşılığını doğrula
-            const expectedMeshIndex = FDI_TO_MESH_MAP[Number(tId)];
-            return expectedMeshIndex !== undefined && expectedMeshIndex === meshIndex;
+            // 24 ve 25 numaralı dişler (Alt Santraller) 3D modelde tek bir obje (Mesh 15) olarak birleşiktir.
+            // Bu nedenle uId 24 olan bu mesh, hem 24 hem de 25 numaralı teşhislerde boyanacaktır.
+            let searchId = Number(tId);
+            if (searchId === 25 && uId === 24) return true;
+            
+            return searchId === uId;
           });
-          
-          if (matchedFinding) {
-            console.log("[AURA 3D MATCH]: Mesh:", name, "(Index:", meshIndex, ") successfully mapped with FDI:", matchedFinding.tooth_id);
-          }
         }
-
-        mesh.visible = true; 
-
-        const isActiveTest = meshIndex === testIndex;
 
         if (isReconstructing) {
           mesh.material = clinicalMaterials.reconstructing;
         } else if (isScanning) {
           mesh.material = clinicalMaterials.scanning;
-        } else if (isActiveTest) {
-          // Teşhis Modu: Aktif test edilen dişi neon yeşili boya!
-          mesh.material = new THREE.MeshStandardMaterial({
-            color: '#34C759',
-            roughness: 0.1,
-            metalness: 0.9,
-            emissive: '#34C759',
-            emissiveIntensity: 0.4,
-          });
         } else if (matchedFinding) {
           const pathType = (matchedFinding.pathology || '').toLowerCase();
           const materialKey = pathType as keyof typeof clinicalMaterials;
           const assignedMat = clinicalMaterials[materialKey] || clinicalMaterials.extraction;
           
-          // 🛡️ Materyal Klonlama Kalkanı: Her mesh için bağımsız materyal instance'ı oluştur
           const clonedMat = assignedMat.clone();
           if (clonedMat instanceof THREE.MeshStandardMaterial) {
             clonedMat.transparent = false;
             clonedMat.opacity = 1.0;
           }
           mesh.material = clonedMat;
-          
-          console.log("[AURA 3D COLOR]: Assigned color for", name, "pathology:", pathType);
         } else {
-          // Sağlıklı dişlere şık ve hafif şeffaf (Glassmorphism) varsayılan atayarak parlamayı artır
-          const healthyMat = clinicalMaterials.teeth.clone();
-          mesh.material = healthyMat;
+          mesh.material = clinicalMaterials.teeth.clone();
         }
       }
     });
@@ -241,11 +267,18 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
         e.stopPropagation();
         const mesh = e.object;
         if (mesh && (mesh as THREE.Mesh).isMesh) {
-          const meshName = (mesh.name || '').toLowerCase();
-          const match = meshName.match(/_(\d+)$/) || meshName.match(/\.stl_(\d+)/);
-          const index = match ? match[1] : '0';
-          console.log(`%c[AURA CLICKED TOOTH MESH]: Name: ${mesh.name} -> Mesh Index: ${index}`, "color: #FF9F0A; font-weight: bold; font-size: 14px;");
-          alert(`Tıkladığınız Dişin Mesh Numarası: ${index}\nMesh Adı: ${mesh.name}\n\nBu numarayı asistanınıza ileterek 3D haritalandırmayı saniyeler içinde kilitleyebilirsiniz!`);
+          const uId = mesh.userData.universalId || 'Atanmadı';
+          
+          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+          const center = new THREE.Vector3();
+          mesh.geometry.boundingBox?.getCenter(center);
+          mesh.updateWorldMatrix(true, false);
+          scene.updateWorldMatrix(true, false);
+          const localToGlbMatrix = new THREE.Matrix4().copy(scene.matrixWorld).invert().multiply(mesh.matrixWorld);
+          center.applyMatrix4(localToGlbMatrix);
+
+          console.log(`[AURA DEBUG] Mesh: ${mesh.name} | uId: ${uId} | X:${center.x.toFixed(2)} Y:${center.y.toFixed(2)} Z:${center.z.toFixed(2)}`);
+          alert(`Tıkladığınız Diş:\nİsim: ${mesh.name}\nAtanan Universal ID: ${uId}\nKoordinat: X:${center.x.toFixed(2)}, Y:${center.y.toFixed(2)}, Z:${center.z.toFixed(2)}\n\nLütfen bunu asistanınıza iletin!`);
         }
       }}
     >
@@ -254,10 +287,9 @@ const ModelRenderer = ({ url, isScanning, isReconstructing }: { url: string, isS
           <primitive object={scene} scale={0.12} />
         </Float>
         <Html position={[0, 1.8, 0]} center>
-          <div className="bg-black/85 backdrop-blur-md border border-[#34C759] text-white px-5 py-3 rounded-2xl shadow-lg flex flex-col items-center gap-1 min-w-[240px] pointer-events-none transition-all duration-300">
-            <span className="text-[10px] uppercase tracking-widest text-[#34C759] font-bold">Aura 3D Teşhis Modu</span>
-            <span className="text-xl font-extrabold text-white">Mesh Index: {testIndex}</span>
-            <span className="text-[11px] text-gray-400">Yeşil parıldayan dişi takip edin</span>
+          <div className="bg-black/85 backdrop-blur-md border border-emerald-500 text-white px-5 py-3 rounded-2xl shadow-lg flex flex-col items-center gap-1 min-w-[240px] pointer-events-none transition-all duration-300">
+            <span className="text-[10px] uppercase tracking-widest text-emerald-500 font-bold">Aura 3D Teşhis Modu</span>
+            <span className="text-[11px] text-gray-400 mt-1">İmplant veya bulguları 3D inceleyin</span>
           </div>
         </Html>
       </Center>

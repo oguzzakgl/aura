@@ -234,7 +234,8 @@ async def analyze_scan(
                     pass
             
             mock_task = MockTask()
-            sync_result = run_analysis_core(mock_task, secure_url, session_id)
+            import asyncio
+            sync_result = await asyncio.to_thread(run_analysis_core, mock_task, secure_url, session_id)
             
             return {
                 "status": "success",
@@ -459,6 +460,38 @@ async def generate_report_endpoint(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+
+# --- GENERATIVE SIMULATION SERVICE ---
+from fastapi import Form
+from services.simulation_service import SimulationService
+simulation_service = SimulationService()
+
+@app.post("/simulate")
+async def simulate_smile_endpoint(
+    image: UploadFile = File(...),
+    treatments: str = Form(...),
+    doctor: dict = Depends(get_current_doctor)
+):
+    """
+    Faz 6: Generative Tedavi Simülatörü (Smile Design)
+    @sec: JWT / RBAC Korumalı.
+    """
+    ext = os.path.splitext(image.filename or ".jpg")[1].lower()
+    safe_filename = f"sim_temp_{uuid.uuid4().hex}{ext}"
+    temp_path = os.path.join(RAW_DATA_DIR, safe_filename)
+    
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+            
+        treatment_list = [t.strip() for t in treatments.split(',')]
+        result = simulation_service.generate_smile(temp_path, treatment_list)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
